@@ -1,0 +1,906 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>College Budget — Prototype (Edited)</title>
+  <style>
+    :root{
+      --pink:#EECFCA; /* light pink */
+      --blush:#C7A491; /* dusty blush */
+      --sage:#919682; /* sage */
+      --lightgreen:#C7CDBF; /* light green */
+      --darkest:#1D2E28; /* darkest green */
+      --green:#8DA750; /* green */
+      --muted:#595E48; /* muted green */
+      --bg:#FAF9F8;
+      --card:#FFFFFF;
+      --text:#1D2E28;
+      --shadow:0 10px 30px rgba(0,0,0,0.08);
+      --radius:18px;
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0; font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji";
+      color:var(--text); background:linear-gradient(180deg, #ffffff, var(--bg) 120%);
+    }
+    a{color:var(--muted); text-decoration:none}
+    a:hover{text-decoration:underline}
+
+    .container{max-width:1100px; margin:0 auto; padding:28px}
+    .hidden{display:none !important}
+    .card{background:var(--card); border-radius:var(--radius); box-shadow:var(--shadow); padding:22px}
+    .title{font-size:28px; font-weight:800; letter-spacing:0.2px}
+    .subtitle{margin-top:6px; color:#465351; opacity:0.9}
+    .row{display:flex; gap:18px; flex-wrap:wrap}
+    .col{flex:1 1 320px}
+
+    /* Buttons */
+    .btn{appearance:none; border:none; cursor:pointer; padding:12px 16px; border-radius:14px; font-weight:700; background:var(--darkest); color:white; box-shadow:var(--shadow)}
+    .btn.secondary{background:var(--sage)}
+    .btn.ghost{background:transparent; color:var(--darkest); border:1px solid #D9DEDA}
+    .btn.small{padding:8px 12px; border-radius:12px; font-weight:600}
+
+    /* Inputs */
+    .input{width:100%; padding:12px 14px; border-radius:12px; border:1px solid #DADFD9; background:#fff; outline:none; font-size:14px}
+    .input:focus{border-color:var(--sage); box-shadow:0 0 0 4px rgba(145,150,130,0.2)}
+    label{font-size:13px; color:#4e5a58; display:block; margin-bottom:6px}
+    .field{margin-bottom:14px}
+
+    /* Action bullets */
+    ul.actions{list-style:disc; padding-left:22px; margin:0}
+    ul.actions li{font-weight:800; cursor:pointer; user-select:none; width:fit-content; padding:4px 6px; border-radius:8px; transition:color .15s ease, background .2s ease}
+    ul.actions li:hover{color:var(--sage); background:rgba(145,150,130,0.08)}
+
+    /* Overview */
+    .overview-pill{display:inline-flex; align-items:center; gap:10px; padding:10px 14px; border-radius:999px; background:#F2F4F1; border:1px solid #E6ECE4; font-weight:700}
+    .dot{width:12px; height:12px; border-radius:50%}
+
+    /* Tables */
+    table{width:100%; border-collapse:separate; border-spacing:0 10px}
+    th{font-size:13px; text-transform:uppercase; letter-spacing:.04em; color:#5a655f; padding:4px 10px; text-align:left}
+    td{background:#ffffff; border:1px solid #E6ECE4; padding:12px 10px}
+    tr td:first-child{border-top-left-radius:12px; border-bottom-left-radius:12px}
+    tr td:last-child{border-top-right-radius:12px; border-bottom-right-radius:12px}
+    .spentCell{font-weight:800}
+    .spentCell:hover{color:var(--sage); cursor:pointer}
+
+    .statusBox{width:28px; height:20px; display:inline-block; border-radius:6px; border:1px solid rgba(0,0,0,0.06)}
+    .status-green{background:linear-gradient(180deg, #dff3df, #bfe9bf)}
+    .status-red{background:linear-gradient(180deg, #ffdede, #ffbcbc)}
+    .status-gray{background:linear-gradient(180deg, #eef1ef, #dde3df)}
+
+    /* Progress grid (months = rows, categories = columns) */
+    .progress-table{width:100%; border-collapse:separate; border-spacing:0 8px}
+    .progress-table th, .progress-table td{padding:8px 10px}
+    .progress-table .month-cell{font-weight:700; color:#4e5a58; background:transparent; border:none}
+
+    /* Modals */
+    .modal-overlay{position:fixed; inset:0; background:rgba(0,0,0,0.25); display:flex; align-items:center; justify-content:center; z-index:50}
+    .modal{background:#fff; width:min(560px, 92vw); border-radius:18px; box-shadow:var(--shadow); padding:20px}
+    .modal h3{margin:0 0 8px 0}
+
+    /* Tiny helpers */
+    .flex{display:flex; gap:10px}
+    .space-between{display:flex; justify-content:space-between; align-items:center}
+    .muted{color:#6a756f}
+    .mt8{margin-top:8px}
+    .mt16{margin-top:16px}
+    .mt24{margin-top:24px}
+    .mb8{margin-bottom:8px}
+    .mb16{margin-bottom:16px}
+
+    /* Login card */
+    .login-hero{font-size:36px; font-weight:900}
+    .pill-tag{font-size:12px; padding:6px 10px; border-radius:999px; border:1px solid #e5eae6; background:#F7F8F6; display:inline-block}
+
+    /* Simple view router */
+    .view{display:none}
+    .view.active{display:block}
+  </style>
+</head>
+<body>
+  <div class="container">
+    <!-- Login View -->
+    <div id="loginView" class="view active">
+      <div class="row">
+        <div class="col">
+          <div class="card">
+            <div class="login-hero">Welcome 👋</div>
+            <div class="subtitle">Hi! Thank you for checking out my simple MIT budgeting web app. Let me know if I'm missing anything. - Chloe</div>
+            <div class="mt16 pill-tag">BTW: Your data is saved to this device only.</div>
+            <form id="loginForm" class="mt24">
+              <div class="field">
+                <label>First name</label>
+                <input class="input" id="firstName" placeholder="type here" autocomplete="given-name" required />
+              </div>
+              <div class="field">
+                <label>Last name</label>
+                <input class="input" id="lastName" placeholder="type here" autocomplete="family-name" required />
+              </div>
+              <div class="field">
+                <label>Birthday (MM-DD-YYYY)</label>
+                <input class="input" id="birthday" placeholder="00-00-0000" required />
+              </div>
+              <div class="space-between mt16">
+                <button class="btn" type="submit">Enter</button>
+                <button class="btn ghost" id="clearLast" type="button">Clear last used</button>
+              </div>
+            </form>
+            <div id="newUserQuestion" class="mt16 hidden">
+              <div class="mb8">Are you a new user?</div>
+              <div class="flex">
+                <button class="btn secondary small" id="newYes">Yes</button>
+                <button class="btn ghost small" id="newNo">No</button>
+              </div>
+              <div class="mt8 muted" id="newNoMsg" style="display:none">Please check your info and try again.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Main View -->
+    <div id="mainView" class="view">
+      <div class="space-between mb8">
+        <div>
+          <div class="title" id="logTitle">—</div>
+          <div class="subtitle">Select an action.</div>
+        </div>
+        <div class="flex">
+          <!-- Settings button removed per request -->
+          <button class="btn ghost" id="logoutBtn">Log out</button>
+        </div>
+      </div>
+
+      <ul class="actions mt8">
+        <li id="actExpense">expense</li>
+        <li id="actDeposit">deposit</li>
+        <li id="actMove">move</li>
+      </ul>
+
+      <!-- Overview -->
+      <div class="mt24 card">
+        <div class="space-between">
+          <div class="title" style="font-size:20px">My Overview</div>
+          <button class="btn ghost small" id="addAccountBtn">Add account</button>
+        </div>
+        <div class="mt16 subtitle">Accounts:</div>
+        <div class="flex mt8" id="overviewPrimary"></div>
+        <div class="mt8"><a href="#" id="showMore">Show more</a></div>
+        <div class="flex mt8 hidden" id="overviewMore"></div>
+      </div>
+
+      <!-- Recent Transactions -->
+      <div class="mt24 card">
+        <div class="space-between">
+          <div class="title" style="font-size:20px">Recent Transactions</div>
+          <a href="#" id="seeAllLink">See all</a>
+        </div>
+        <ul id="recentList" style="margin-top:10px; padding-left:22px"></ul>
+      </div>
+
+      <!-- Monthly Goals -->
+      <div class="mt24 card">
+        <div class="space-between">
+          <div>
+            <div class="title" style="font-size:20px">Monthly Goals</div>
+            <div class="subtitle" id="monthLabel">—</div>
+          </div>
+          <div class="flex">
+            <button class="btn ghost small" id="addCategoryBtn">Add category</button>
+            <button class="btn ghost small" id="removeCategoryBtn">Remove category</button>
+            <button class="btn ghost small" id="archiveBtn">Archive month</button>
+          </div>
+        </div>
+        <div class="mt16">
+          <table id="goalsTable">
+            <thead>
+              <tr>
+                <th>Category</th>
+                <th>Goal</th>
+                <th>Spent</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Progress (months as rows, categories as columns) -->
+      <div class="mt24 card">
+        <div class="space-between">
+          <div class="title" style="font-size:20px">Progress</div>
+          <div class="flex">
+            <label class="muted" for="monthsBack">Months</label>
+            <input id="monthsBack" type="number" class="input" value="12" min="1" max="36" style="width:90px" />
+          </div>
+        </div>
+        <div class="mt16" id="progressGrid"></div>
+      </div>
+
+      <!-- Settings panel completely removed per request -->
+    </div>
+
+    <!-- All Transactions View -->
+    <div id="allView" class="view">
+      <div class="space-between mb8">
+        <div>
+          <div class="title" style="font-size:24px">All Transactions</div>
+          <div class="subtitle">Full history</div>
+        </div>
+        <button class="btn ghost" id="backToMain">Back</button>
+      </div>
+      <div class="card mt8" id="allTxContainer"></div>
+    </div>
+  </div>
+
+  <div id="modalRoot"></div>
+
+  <script>
+  (function(){
+    // ----- Utilities -----
+    const $ = (sel, root=document) => root.querySelector(sel);
+    const $$ = (sel, root=document) => Array.from(root.querySelectorAll(sel));
+    const fmt = new Intl.NumberFormat('en-US',{style:'currency', currency:'USD'});
+    const todayISO = () => new Date().toISOString().slice(0,10);
+    const monthKey = (d) => { const dt = new Date(d||todayISO()); return `${dt.getFullYear()}-${String(dt.getMonth()+1).padStart(2,'0')}` };
+
+    function normalizeName(s){ return (s||'').trim().toLowerCase(); }
+    function normalizeBirthday(s){
+      const t = (s||'').trim();
+      const m = t.match(/^(\d{2})[-\/.](\d{2})[-\/.](\d{4})$/);
+      if(!m) return null; return `${m[1]}-${m[2]}-${m[3]}`;
+    }
+    function userKey(first,last,bday){ return `${normalizeName(first)}|${normalizeName(last)}|${bday}` }
+
+    function loadUser(key){ const raw = localStorage.getItem(`budgetapp:user:${key}`); return raw? JSON.parse(raw): null }
+    function saveUser(key,data){ localStorage.setItem(`budgetapp:user:${key}`, JSON.stringify(data)); localStorage.setItem('budgetapp:last', key); }
+
+    function defaultUser(first,last,bday){
+      return {
+        profile:{ firstName:first.trim(), lastName:last.trim(), birthday:bday },
+        accounts:{ debit:0, credit:0, savings:0, TechCash:0 },
+        accountColors:{ debit:'#8DA750', credit:'#C7A491', savings:'#C7CDBF', TechCash:'#919682' },
+        categories:{ 'Groceries':'#8DA750', 'Laundry':'#C7CDBF', 'Eating Out':'#C7A491' },
+        transactions:[],
+        monthlyGoals:{}
+      }
+    }
+
+    function ensureMonthGoals(u, mKey){ if(!u.monthlyGoals[mKey]) u.monthlyGoals[mKey] = {}; return u.monthlyGoals[mKey]; }
+
+    function displayAccount(name){
+      if(name === 'TechCash') return 'TechCash';
+      // default: capitalize first letter only
+      return String(name).charAt(0).toUpperCase() + String(name).slice(1);
+    }
+
+    function computeBalances(u){
+      // start from declared account baselines
+      const bal = {};
+      for(const k of Object.keys(u.accounts)) bal[k] = Number(u.accounts[k]||0);
+
+      for(const t of u.transactions){
+        if(t.type==='expense'){
+          if(String(t.account).toLowerCase()==='credit') bal.credit = (bal.credit||0) + t.amount; 
+          else bal[t.account] = (bal[t.account]||0) - t.amount;
+        } else if(t.type==='deposit'){
+          if(String(t.account).toLowerCase()==='credit') bal.credit = (bal.credit||0) - t.amount;
+          else bal[t.account] = (bal[t.account]||0) + t.amount;
+        } else if(t.type==='move'){
+          if(String(t.from).toLowerCase()==='credit') bal.credit = (bal.credit||0) - t.amount; else bal[t.from] = (bal[t.from]||0) - t.amount;
+          if(String(t.to).toLowerCase()==='credit') bal.credit = (bal.credit||0) - t.amount; else bal[t.to] = (bal[t.to]||0) + t.amount; // moving TO credit pays it down
+        }
+      }
+      return bal;
+    }
+
+    function spentThisMonth(u, cat, mKey){
+      return u.transactions.filter(t => t.type==='expense' && t.category===cat && monthKey(t.date)===mKey).reduce((s,t)=>s+t.amount,0);
+    }
+
+    function transactionsByMonthCategory(u, cat, mKey){
+      return u.transactions.filter(t => t.type==='expense' && t.category===cat && monthKey(t.date)===mKey)
+      .sort((a,b)=> new Date(b.date) - new Date(a.date));
+    }
+
+    function recentTransactions(u, n=5){
+      return [...u.transactions].sort((a,b)=> new Date(b.date)-new Date(a.date)).slice(0,n);
+    }
+
+    function download(filename, text){
+      const a = document.createElement('a');
+      a.setAttribute('href','data:application/json;charset=utf-8,'+encodeURIComponent(text));
+      a.setAttribute('download', filename);
+      a.click();
+    }
+
+    function uuid(){ return Math.random().toString(36).slice(2)+Date.now().toString(36) }
+
+    // ----- Simple router -----
+    const views = { login: $('#loginView'), main: $('#mainView'), all: $('#allView') };
+    function showView(name){ Object.values(views).forEach(v=>v.classList.remove('active')); views[name].classList.add('active'); }
+
+    // ----- App State -----
+    let state = { key:null, user:null };
+
+    // ----- Login -----
+    const loginForm = $('#loginForm');
+    const firstNameI = $('#firstName');
+    const lastNameI = $('#lastName');
+    const birthdayI = $('#birthday');
+    const newUserQ = $('#newUserQuestion');
+    const newYes = $('#newYes');
+    const newNo = $('#newNo');
+    const newNoMsg = $('#newNoMsg');
+
+    // prefill from last session
+    const lastKey = localStorage.getItem('budgetapp:last');
+    if(lastKey){
+      const [f,l,b] = lastKey.split('|');
+      firstNameI.value = f ? f.charAt(0).toUpperCase()+f.slice(1) : '';
+      lastNameI.value = l ? l.charAt(0).toUpperCase()+l.slice(1) : '';
+      birthdayI.value = b || '';
+    }
+
+    $('#clearLast').addEventListener('click', ()=>{
+      localStorage.removeItem('budgetapp:last');
+      firstNameI.value = lastNameI.value = birthdayI.value = '';
+    });
+
+    loginForm.addEventListener('submit', (e)=>{
+      e.preventDefault();
+      const fn = firstNameI.value.trim();
+      const ln = lastNameI.value.trim();
+      const bd = normalizeBirthday(birthdayI.value);
+      if(!fn || !ln || !bd){ alert('Please enter a valid first name, last name, and birthday (MM-DD-YYYY).'); return; }
+      const key = userKey(fn, ln, bd);
+      const existing = loadUser(key);
+      if(existing){ state = { key, user: existing }; enterMain(); }
+      else{
+        newUserQ.classList.remove('hidden');
+        newNoMsg.style.display='none';
+        state = { key, user: defaultUser(fn, ln, bd) };
+      }
+    });
+
+    newYes.addEventListener('click', ()=>{ saveUser(state.key, state.user); enterMain(); });
+    newNo.addEventListener('click', ()=>{ newNoMsg.style.display='block'; });
+
+    // ----- Main rendering -----
+    const logTitle = $('#logTitle');
+    const overviewPrimary = $('#overviewPrimary');
+    const overviewMore = $('#overviewMore');
+    const showMore = $('#showMore');
+    const recentList = $('#recentList');
+    const monthLabel = $('#monthLabel');
+    const goalsTableBody = $('#goalsTable tbody');
+    const progressGrid = $('#progressGrid');
+
+    function enterMain(){
+      showView('main');
+      newUserQ.classList.add('hidden');
+      renderAll();
+    }
+
+    function renderAll(){
+      const u = state.user; if(!u) return;
+      logTitle.textContent = `${u.profile.firstName}'s Log`;
+
+      // Overview
+      const bal = computeBalances(u);
+
+      function chip(name){
+        const value = bal[name];
+        const div = document.createElement('div');
+        div.className = 'overview-pill';
+        const color = (u.accountColors && u.accountColors[name]) || '#DADADA';
+        div.innerHTML = `<span class="dot" style="background:${color}"></span><span>${displayAccount(name)}</span> <strong>${String(name).toLowerCase()==='credit'? fmt.format(Math.max(0, value)) : fmt.format(value)}</strong>`;
+        return div;
+      }
+
+      // choose primary chips: debit + TechCash if available, else first two
+      const allAccounts = Object.keys(u.accounts);
+      const primaryNames = [];
+      if(allAccounts.includes('debit')) primaryNames.push('debit');
+      if(allAccounts.includes('TechCash')) primaryNames.push('TechCash');
+      for(const n of allAccounts){ if(primaryNames.length>=2) break; if(!primaryNames.includes(n)) primaryNames.push(n); }
+
+      overviewPrimary.innerHTML = '';
+      for(const n of primaryNames){ overviewPrimary.appendChild(chip(n)); }
+
+      overviewMore.innerHTML = '';
+      for(const n of allAccounts){ if(!primaryNames.includes(n)) overviewMore.appendChild(chip(n)); }
+
+      // Recent transactions
+      renderRecent();
+
+      // Goals table
+      renderGoalsTable();
+
+      // Progress
+      renderProgress();
+
+      // Month label
+      const dt = new Date();
+      monthLabel.textContent = dt.toLocaleString(undefined, { month:'long', year:'numeric' });
+    }
+
+    function renderRecent(){
+      const list = recentTransactions(state.user, 5);
+      recentList.innerHTML = '';
+      if(list.length===0){
+        const li = document.createElement('li');
+        li.textContent = 'No transactions yet.';
+        recentList.appendChild(li);
+        return;
+      }
+      for(const t of list){
+        const li = document.createElement('li');
+        const typeWord = t.type.charAt(0).toUpperCase()+t.type.slice(1);
+        const base = `Date: ${t.date} — ${typeWord}, ${fmt.format(t.amount)}`;
+        const cat = t.category? ` — Category: ${t.category}` : '';
+        const extra = (t.type==='expense')? ` — ${t.account}` : (t.type==='deposit'? ` — ${t.account}` : ` — ${t.from} → ${t.to}`);
+        const note = t.note? ` — Note: ${t.note}` : '';
+        li.innerHTML = `${base}${extra}${cat}${note} <span class="muted"> · </span>
+          <a href="#" data-edit>edit</a> <span class="muted">|</span> <a href="#" data-del>delete</a>`;
+
+        // bind actions
+        $('a[data-edit]', li).addEventListener('click', (e)=>{ e.preventDefault(); openModal(buildEditTxForm(t)); });
+        $('a[data-del]', li).addEventListener('click', (e)=>{
+          e.preventDefault();
+          if(confirm('Delete this transaction?')){
+            state.user.transactions = state.user.transactions.filter(x => x.id !== t.id);
+            saveUser(state.key, state.user);
+            renderAll();
+          }
+        });
+
+        recentList.appendChild(li);
+      }
+    }
+
+    function categoriesList(u){ return Object.keys(u.categories); }
+
+    function renderGoalsTable(){
+      const u = state.user; const mk = monthKey(); ensureMonthGoals(u, mk);
+      const cats = categoriesList(u);
+      goalsTableBody.innerHTML = '';
+      for(const c of cats){
+        const tr = document.createElement('tr');
+        const goal = u.monthlyGoals[mk][c] || 0;
+        const spent = spentThisMonth(u, c, mk);
+        const ok = goal>0 ? spent <= goal : false; // if no goal, gray
+
+        tr.innerHTML = `
+          <td>${c}</td>
+          <td><input type="number" min="0" step="0.01" class="input" data-cat="${c}" value="${goal}" /></td>
+          <td class="spentCell" data-cat="${c}">${fmt.format(spent)}</td>
+          <td><span class="statusBox ${goal===0? 'status-gray' : (ok? 'status-green':'status-red')}" title="${ok? 'On track' : (goal===0?'No goal':'Over goal')}"></span></td>
+        `;
+        goalsTableBody.appendChild(tr);
+      }
+
+      // Bind change handlers for goals
+      $$('input[type="number"][data-cat]', goalsTableBody).forEach(inp=>{
+        inp.addEventListener('change', ()=>{
+          const cat = inp.getAttribute('data-cat');
+          const val = Math.max(0, Number(inp.value||0));
+          const mk = monthKey();
+          ensureMonthGoals(state.user, mk)[cat] = val;
+          saveUser(state.key, state.user);
+          renderGoalsTable();
+          renderProgress();
+        });
+      });
+
+      // Click on spent -> show modal
+      $$('.spentCell', goalsTableBody).forEach(td=>{
+        td.addEventListener('click', ()=>{
+          const cat = td.getAttribute('data-cat');
+          const txs = transactionsByMonthCategory(state.user, cat, monthKey());
+          openModal(renderTxListModal(cat, txs));
+        });
+      });
+    }
+
+    function renderTxListModal(cat, txs){
+      const wrap = document.createElement('div');
+      wrap.innerHTML = `
+        <div class="modal">
+          <h3>Transactions — ${cat}</h3>
+          <div class="muted">Current month</div>
+          <div class="mt16" style="max-height:50vh; overflow:auto">
+            ${ txs.length===0 ? '<div class="muted">No transactions</div>' : ''}
+            ${ txs.map(t=>`<div style="padding:8px 0; border-bottom:1px solid #eef1ee">
+              <div><strong>${t.date}</strong> — ${fmt.format(t.amount)} (${t.type==='move' ? (t.from + ' → ' + t.to) : (t.account)})</div>
+              ${t.note? `<div class="muted">${t.note}</div>`:''}
+            </div>`).join('') }
+          </div>
+          <div class="mt16 flex" style="justify-content:flex-end">
+            <button class="btn" data-close>Close</button>
+          </div>
+        </div>`;
+      return wrap;
+    }
+
+    function monthsList(back){
+      const out=[]; const now=new Date();
+      for(let i=0;i<back;i++){
+        const d = new Date(now.getFullYear(), now.getMonth()-i, 1);
+        const key = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
+        out.push({key, label: d.toLocaleString(undefined,{month:'short', year:'2-digit'})});
+      }
+      return out.reverse();
+    }
+
+    function renderProgress(){
+      const u = state.user; const back = Math.min(36, Math.max(1, Number($('#monthsBack').value||12)));
+      const months = monthsList(back);
+      const cats = categoriesList(u);
+      progressGrid.innerHTML = '';
+
+      if(cats.length===0){
+        progressGrid.innerHTML = '<div class="muted">No categories yet.</div>';
+        return;
+      }
+
+      // Build a table with months as rows
+      const table = document.createElement('table');
+      table.className = 'progress-table';
+      const thead = document.createElement('thead');
+      const headRow = document.createElement('tr');
+      headRow.innerHTML = '<th class="month-cell">Month</th>' + cats.map(c=>`<th>${c}</th>`).join('');
+      thead.appendChild(headRow);
+      table.appendChild(thead);
+
+      const tbody = document.createElement('tbody');
+      for(const m of months){
+        const tr = document.createElement('tr');
+        tr.innerHTML = `<td class="month-cell">${m.label}</td>`;
+        for(const cat of cats){
+          const goal = (u.monthlyGoals[m.key]||{})[cat] || 0;
+          const spent = u.transactions.filter(t=> t.type==='expense' && t.category===cat && monthKey(t.date)===m.key).reduce((s,t)=>s+t.amount,0);
+          const ok = goal>0 ? spent <= goal : null;
+          const cell = document.createElement('td');
+          cell.title = `${m.label} — ${cat}: ${fmt.format(spent)} / ${fmt.format(goal)}`;
+          const span = document.createElement('span');
+          span.className = 'statusBox ' + (ok===null ? 'status-gray' : (ok ? 'status-green' : 'status-red'));
+          cell.appendChild(span);
+          tr.appendChild(cell);
+        }
+        tbody.appendChild(tr);
+      }
+      table.appendChild(tbody);
+      progressGrid.appendChild(table);
+    }
+
+    // ----- Actions (Expense / Deposit / Move) -----
+    $('#actExpense').addEventListener('click', ()=> openModal(buildExpenseForm()));
+    $('#actDeposit').addEventListener('click', ()=> openModal(buildDepositForm()));
+    $('#actMove').addEventListener('click', ()=> openModal(buildMoveForm()));
+
+    function buildAccountsOptions(selected){
+      const names = Object.keys(state.user.accounts);
+      return names.map(n=>`<option value="${n}" ${selected===n?'selected':''}>${displayAccount(n)}</option>`).join('');
+    }
+
+    function buildCategoriesOptions(u, selected){
+      const cats = categoriesList(u);
+      const opts = cats.map(c=>`<option value="${c}" ${selected===c?'selected':''}>${c}</option>`).join('');
+      return opts + '<option value="__new__">➕ Add new…</option>';
+    }
+
+    function buildExpenseForm(prefill){
+      const u = state.user;
+      const wrap = document.createElement('div');
+      const d = prefill || {};
+      wrap.innerHTML = `
+        <div class="modal">
+          <h3>${d.id ? 'Edit Expense' : 'New Expense'}</h3>
+          <div class="flex">
+            <div class="field" style="flex:1">
+              <label>Date</label>
+              <input class="input" id="expDate" type="date" value="${d.date || todayISO()}" />
+            </div>
+            <div class="field" style="flex:1">
+              <label>Amount (USD)</label>
+              <input class="input" id="expAmount" type="number" min="0" step="0.01" value="${d.amount || ''}" placeholder="25.00" />
+            </div>
+          </div>
+          <div class="field">
+            <label>Account</label>
+            <select class="input" id="expAccount">${buildAccountsOptions(d.account || 'debit')}</select>
+          </div>
+          <div class="field">
+            <label>Category</label>
+            <select class="input" id="expCategory">${buildCategoriesOptions(u, d.category)}</select>
+            <div id="newCatFields" class="flex mt8 hidden">
+              <input class="input" id="newCatName" placeholder="Category name (e.g., School)" />
+              <input class="input" id="newCatColor" type="color" value="#919682" title="Pick color" style="width:70px; padding:6px" />
+            </div>
+          </div>
+          <div class="field">
+            <label>Note (optional)</label>
+            <input class="input" id="expNote" value="${d.note || ''}" placeholder="(e.g., Trader Joe's)" />
+          </div>
+          <div class="mt16 flex" style="justify-content:flex-end">
+            <button class="btn ghost" data-close>Cancel</button>
+            <button class="btn" id="expSave">${d.id ? 'Save' : 'Complete'}</button>
+          </div>
+        </div>`;
+
+      const catSel = $('#expCategory', wrap);
+      catSel.addEventListener('change', ()=>{
+        $('#newCatFields', wrap).classList.toggle('hidden', catSel.value !== '__new__');
+      });
+
+      $('#expSave', wrap).addEventListener('click', ()=>{
+        const date = $('#expDate', wrap).value || todayISO();
+        const amount = Number($('#expAmount', wrap).value||0);
+        const account = $('#expAccount', wrap).value;
+        let category = $('#expCategory', wrap).value;
+        const note = $('#expNote', wrap).value.trim();
+        if(amount<=0){ alert('Please enter a positive amount.'); return; }
+        if(category==='__new__'){
+          const name = $('#newCatName', wrap).value.trim();
+          if(!name){ alert('Enter a category name.'); return; }
+          const col = $('#newCatColor', wrap).value || '#919682';
+          state.user.categories[name] = col;
+          category = name;
+        }
+        if(d.id){
+          // update existing
+          Object.assign(d, { date, amount, account, category, note });
+          const idx = state.user.transactions.findIndex(x=>x.id===d.id);
+          if(idx>-1) state.user.transactions[idx] = d;
+        }else{
+          state.user.transactions.push({ id:uuid(), type:'expense', date, amount, account, category, note });
+        }
+        saveUser(state.key, state.user);
+        closeModal(); renderAll();
+      });
+
+      return wrap;
+    }
+
+    function buildDepositForm(prefill){
+      const d = prefill || {};
+      const wrap = document.createElement('div');
+      wrap.innerHTML = `
+        <div class="modal">
+          <h3>${d.id ? 'Edit Deposit' : 'New Deposit'}</h3>
+          <div class="flex">
+            <div class="field" style="flex:1">
+              <label>Date</label>
+              <input class="input" id="depDate" type="date" value="${d.date || todayISO()}" />
+            </div>
+            <div class="field" style="flex:1">
+              <label>Amount (USD)</label>
+              <input class="input" id="depAmount" type="number" min="0" step="0.01" value="${d.amount || ''}" placeholder="100.00" />
+            </div>
+          </div>
+          <div class="field">
+            <label>Account</label>
+            <select class="input" id="depAccount">${buildAccountsOptions(d.account || 'debit')}</select>
+          </div>
+          <div class="field">
+            <label>Note (optional)</label>
+            <input class="input" id="depNote" value="${d.note || ''}" placeholder="(e.g., part-time job)" />
+          </div>
+          <div class="mt16 flex" style="justify-content:flex-end">
+            <button class="btn ghost" data-close>Cancel</button>
+            <button class="btn" id="depSave">${d.id ? 'Save' : 'Complete'}</button>
+          </div>
+        </div>`;
+
+      $('#depSave', wrap).addEventListener('click', ()=>{
+        const date = $('#depDate', wrap).value || todayISO();
+        const amount = Number($('#depAmount', wrap).value||0);
+        const account = $('#depAccount', wrap).value;
+        const note = $('#depNote', wrap).value.trim();
+        if(amount<=0){ alert('Please enter a positive amount.'); return; }
+        if(d.id){
+          Object.assign(d, { date, amount, account, note });
+          const idx = state.user.transactions.findIndex(x=>x.id===d.id);
+          if(idx>-1) state.user.transactions[idx] = d;
+        }else{
+          state.user.transactions.push({ id:uuid(), type:'deposit', date, amount, account, note });
+        }
+        saveUser(state.key, state.user);
+        closeModal(); renderAll();
+      });
+
+      return wrap;
+    }
+
+    function buildMoveForm(prefill){
+      const d = prefill || {};
+      const wrap = document.createElement('div');
+      wrap.innerHTML = `
+        <div class="modal">
+          <h3>${d.id ? 'Edit Move' : 'Move Money'}</h3>
+          <div class="flex">
+            <div class="field" style="flex:1">
+              <label>Date</label>
+              <input class="input" id="movDate" type="date" value="${d.date || todayISO()}" />
+            </div>
+            <div class="field" style="flex:1">
+              <label>Amount (USD)</label>
+              <input class="input" id="movAmount" type="number" min="0" step="0.01" value="${d.amount || ''}" placeholder="50.00" />
+            </div>
+          </div>
+          <div class="flex">
+            <div class="field" style="flex:1">
+              <label>From</label>
+              <select class="input" id="movFrom">${buildAccountsOptions(d.from || 'debit')}</select>
+            </div>
+            <div class="field" style="flex:1">
+              <label>To</label>
+              <select class="input" id="movTo">${buildAccountsOptions(d.to || 'savings')}</select>
+            </div>
+          </div>
+          <div class="field">
+            <label>Note (optional)</label>
+            <input class="input" id="movNote" value="${d.note || ''}" placeholder="(e.g., pay credit card)" />
+          </div>
+          <div class="mt16 flex" style="justify-content:flex-end">
+            <button class="btn ghost" data-close>Cancel</button>
+            <button class="btn" id="movSave">${d.id ? 'Save' : 'Complete'}</button>
+          </div>
+        </div>`;
+
+      $('#movSave', wrap).addEventListener('click', ()=>{
+        const date = $('#movDate', wrap).value || todayISO();
+        const amount = Number($('#movAmount', wrap).value||0);
+        const from = $('#movFrom', wrap).value;
+        const to = $('#movTo', wrap).value;
+        const note = $('#movNote', wrap).value.trim();
+        if(amount<=0){ alert('Please enter a positive amount.'); return; }
+        if(from===to){ alert('Choose two different accounts.'); return; }
+        if(d.id){
+          Object.assign(d, { date, amount, from, to, note });
+          const idx = state.user.transactions.findIndex(x=>x.id===d.id);
+          if(idx>-1) state.user.transactions[idx] = d;
+        }else{
+          state.user.transactions.push({ id:uuid(), type:'move', date, amount, from, to, note });
+        }
+        saveUser(state.key, state.user);
+        closeModal(); renderAll();
+      });
+
+      return wrap;
+    }
+
+    // edit helper
+    function buildEditTxForm(t){
+      if(t.type==='expense') return buildExpenseForm({...t});
+      if(t.type==='deposit') return buildDepositForm({...t});
+      if(t.type==='move') return buildMoveForm({...t});
+      return document.createElement('div');
+    }
+
+    // ----- Modal helpers -----
+    const modalRoot = $('#modalRoot');
+    function openModal(content){
+      const overlay = document.createElement('div'); overlay.className='modal-overlay'; overlay.appendChild(content);
+      modalRoot.appendChild(overlay);
+      overlay.addEventListener('click', (e)=>{ if(e.target===overlay) closeModal(); });
+      $$('[data-close]', overlay).forEach(btn=> btn.addEventListener('click', closeModal));
+    }
+    function closeModal(){ modalRoot.innerHTML=''; }
+
+    // ----- Show more toggle -----
+    showMore.addEventListener('click', (e)=>{ e.preventDefault(); overviewMore.classList.toggle('hidden'); showMore.textContent = overviewMore.classList.contains('hidden')? 'Show more':'Show less'; });
+
+    // ----- All transactions view -----
+    $('#seeAllLink').addEventListener('click', (e)=>{ e.preventDefault(); renderAllTransactions(); showView('all'); });
+    $('#backToMain').addEventListener('click', ()=> showView('main'));
+
+    function renderAllTransactions(){
+      const wrap = $('#allTxContainer');
+      const list = [...state.user.transactions].sort((a,b)=> new Date(b.date)-new Date(a.date));
+      if(list.length===0){ wrap.innerHTML = '<div class="muted">No transactions yet.</div>'; return; }
+      const rows = list.map(t=>{
+        const type = t.type;
+        const parts = [ `<strong>${t.date}</strong>`, type, fmt.format(t.amount) ];
+        if(type==='expense'){ parts.push(`${t.account}`, t.category?`cat:${t.category}`:''); }
+        if(type==='deposit'){ parts.push(`${t.account}`); }
+        if(type==='move'){ parts.push(`${t.from} → ${t.to}`); }
+        if(t.note) parts.push(`note:${t.note}`);
+        return `<div style="padding:8px 0; border-bottom:1px solid #eef1ee">${parts.filter(Boolean).join(' — ')}</div>`;
+      }).join('');
+      wrap.innerHTML = rows;
+    }
+
+    // ----- Categories: add & remove -----
+    $('#addCategoryBtn').addEventListener('click', ()=>{
+      const div = document.createElement('div');
+      div.innerHTML = `<div class="modal"><h3>Add category</h3>
+        <div class="flex">
+          <input class="input" id="cname" placeholder="Category name" />
+          <input class="input" id="ccolor" type="color" value="#919682" style="width:70px; padding:6px" />
+        </div>
+        <div class="mt16" style="text-align:right"><button class="btn ghost" data-close>Cancel</button> <button class="btn" id="saveCat">Add</button></div>
+      </div>`;
+      openModal(div);
+      $('#saveCat', div).addEventListener('click', ()=>{
+        const name = $('#cname', div).value.trim(); const col = $('#ccolor', div).value;
+        if(!name){ alert('Enter a name.'); return; }
+        state.user.categories[name] = col; saveUser(state.key, state.user); closeModal(); renderAll();
+      })
+    });
+
+    $('#removeCategoryBtn').addEventListener('click', ()=>{
+      const cats = categoriesList(state.user);
+      if(cats.length===0){ alert('No categories to remove.'); return; }
+      const div = document.createElement('div');
+      div.innerHTML = `<div class="modal"><h3>Remove category</h3>
+        <div class="field">
+          <label>Select a category to remove</label>
+          <select class="input" id="rcSel">${cats.map(c=>`<option value="${c}">${c}</option>`).join('')}</select>
+        </div>
+        <div class="mt16" style="text-align:right"><button class="btn ghost" data-close>Cancel</button> <button class="btn" id="rcDel">Remove</button></div>
+      </div>`;
+      openModal(div);
+      $('#rcDel', div).addEventListener('click', ()=>{
+        const name = $('#rcSel', div).value;
+        if(confirm(`Remove category "${name}"? This won't delete past transactions, but it will hide them from goals/progress.`)){
+          delete state.user.categories[name];
+          // also remove from current month goals to avoid leftover keys
+          const mk = monthKey();
+          if(state.user.monthlyGoals[mk]) delete state.user.monthlyGoals[mk][name];
+          saveUser(state.key, state.user); closeModal(); renderAll();
+        }
+      });
+    });
+
+    // ----- Archive month -----
+    $('#archiveBtn').addEventListener('click', ()=>{
+      ensureMonthGoals(state.user, monthKey()); saveUser(state.key, state.user); alert('This month\'s goals are saved. You can adjust next month separately.');
+    });
+
+    // ----- Months back change -----
+    $('#monthsBack').addEventListener('change', renderProgress);
+
+    // ----- Accounts: add more -----
+    $('#addAccountBtn').addEventListener('click', ()=>{
+      const div = document.createElement('div');
+      div.innerHTML = `<div class="modal"><h3>Add account</h3>
+        <div class="field"><label>Account name</label><input class="input" id="aname" placeholder="e.g., Travel" /></div>
+        <div class="flex">
+          <div class="field" style="flex:1"><label>Starting balance</label><input class="input" id="abalance" type="number" step="0.01" value="0" /></div>
+          <div class="field" style="flex:1"><label>Color</label><input class="input" id="acolor" type="color" value="#C7CDBF" style="width:70px; padding:6px" /></div>
+        </div>
+        <div class="mt16" style="text-align:right"><button class="btn ghost" data-close>Cancel</button> <button class="btn" id="saveAcc">Add account</button></div>
+      </div>`;
+      openModal(div);
+      $('#saveAcc', div).addEventListener('click', ()=>{
+        let name = $('#aname', div).value.trim();
+        const bal = Number($('#abalance', div).value||0);
+        const color = $('#acolor', div).value || '#C7CDBF';
+        if(!name){ alert('Enter an account name.'); return; }
+        if(state.user.accounts.hasOwnProperty(name)){ alert('An account with that name already exists.'); return; }
+        state.user.accounts[name] = bal;
+        state.user.accountColors = state.user.accountColors || {};
+        state.user.accountColors[name] = color;
+        saveUser(state.key, state.user);
+        closeModal(); renderAll();
+      });
+    });
+
+    // ----- Logout -----
+    $('#logoutBtn').addEventListener('click', ()=>{ state={key:null,user:null}; showView('login'); });
+
+    // ----- Build initial action handlers (open new forms) -----
+    function openNewExpense(){ openModal(buildExpenseForm()); }
+    function openNewDeposit(){ openModal(buildDepositForm()); }
+    function openNewMove(){ openModal(buildMoveForm()); }
+
+  })();
+  </script>
+</body>
+</html>
