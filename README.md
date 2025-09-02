@@ -12,7 +12,7 @@ Simple, private budgeting web app for MIT Students. TechCash included!
 
 ## Demo
 Once published with GitHub, the app will be live at:  
-`https://your-username.github.io/MIT-budgeter
+`https://your-username.github.io/MIT-budgeter`
 
 ## How It Works
 - All data is stored in your browser’s **LocalStorage**.
